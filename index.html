@@ -159,6 +159,7 @@
       font-size: clamp(2rem, 8vw, 3.1rem);
       line-height: 1.2;
       letter-spacing: 0;
+      text-align: center;
     }
 
     .lead {
@@ -318,12 +319,13 @@
       width: 100%;
       max-width: 100%;
       min-width: 0;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      background: #fffefa;
+      border: 1px solid #ecd9c7;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #fffefa 0%, #fff7ef 100%);
       text-align: left;
       font-weight: 700;
       min-height: 50px;
+      box-shadow: 0 3px 10px rgba(122, 86, 61, 0.04);
     }
 
     .category-btn {
@@ -334,10 +336,10 @@
     }
 
     .category-button.selected {
-      border-color: rgba(143, 191, 165, 0.95);
-      background: linear-gradient(135deg, var(--accent-soft) 0%, #fff3f2 100%);
-      color: #426a51;
-      box-shadow: inset 0 0 0 1px rgba(143, 191, 165, 0.35);
+      border-color: var(--accent);
+      background: linear-gradient(180deg, var(--accent-soft) 0%, #f7fff8 100%);
+      color: #355640;
+      box-shadow: inset 0 0 0 1px rgba(143, 191, 165, 0.35), 0 4px 12px rgba(143, 191, 165, 0.12);
     }
 
     .time-row {
@@ -359,21 +361,20 @@
 
     .quick-button {
       white-space: nowrap;
-      background: #edf6ef;
-      color: #476b56;
+      background: #eaf0e8;
+      color: #3c6049;
       font-weight: 700;
       min-width: 0;
-      border: 1px solid rgba(143, 191, 165, 0.35);
     }
 
     .quick-button:hover {
-      background: #e2f0e6;
+      background: #dde9df;
     }
 
     .later-times {
       border: 1px solid rgba(234, 223, 206, 0.95);
       border-radius: 15px;
-      background: rgba(255, 253, 248, 0.72);
+      background: rgba(255, 253, 249, 0.72);
       padding: 0;
       max-width: 100%;
       min-width: 0;
@@ -395,6 +396,7 @@
 
     .later-times-body {
       display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;
       padding: 0 13px 13px;
       max-width: 100%;
@@ -444,16 +446,15 @@
       white-space: nowrap;
       min-height: 38px;
       padding: 8px 12px;
-      border: 1px solid #ead9c8;
+      border: 1px solid #e3d8c6;
       background: var(--tea);
-      color: #66584d;
+      color: #5f5346;
       font-size: 0.93rem;
       font-weight: 700;
-      box-shadow: 0 2px 6px rgba(122, 86, 61, 0.04);
     }
 
     .symptom-chip:hover {
-      background: #f2dfcf;
+      background: #f1dfcc;
     }
 
     .form-actions {
@@ -475,7 +476,7 @@
     }
 
     .cancel-button {
-      background: var(--tea);
+      background: #f1e6d7;
     }
 
     .message {
@@ -518,7 +519,6 @@
 
     .record-card {
       padding: 17px;
-      background: linear-gradient(180deg, rgba(255, 253, 249, 0.98) 0%, rgba(255, 250, 245, 0.98) 100%);
     }
 
     .record-top {
@@ -535,17 +535,16 @@
       width: fit-content;
       max-width: 100%;
       margin: 0;
-      padding: 7px 13px;
-      border: 1px solid rgba(143, 191, 165, 0.42);
+      padding: 5px 12px;
+      border: 1px solid rgba(143, 191, 165, 0.45);
       border-radius: 999px;
-      background: linear-gradient(135deg, #eef8f1 0%, #fff3f2 100%);
-      color: #52745e;
+      background: linear-gradient(180deg, #eef8f1 0%, #f8fff9 100%);
+      color: #41644d;
       font-size: 1.08rem;
       font-weight: 800;
-      line-height: 1.25;
+      line-height: 1.35;
       letter-spacing: 0;
-      box-shadow: 0 3px 10px rgba(122, 86, 61, 0.05);
-      overflow-wrap: anywhere;
+      box-shadow: 0 3px 10px rgba(143, 191, 165, 0.12);
     }
 
     .date-text {
@@ -572,7 +571,7 @@
       min-height: 54px;
       padding: 7px 9px;
       border-radius: 12px;
-      background: #fff6ee;
+      background: #fbf6ed;
       line-height: 1.32;
       display: flex;
       flex-direction: column;
@@ -599,7 +598,7 @@
       margin: 0 0 11px;
       padding: 10px 11px;
       border-radius: 13px;
-      background: #fff6ee;
+      background: #fbf6ed;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
     }
@@ -619,26 +618,30 @@
     }
 
     .followup-actions {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
       margin: 0 0 12px;
     }
 
+    .followup-actions .followup-button:only-child {
+      grid-column: 1 / -1;
+    }
+
     .followup-button {
-      background: #edf6ef;
-      color: #4f735c;
-      border: 1px solid #d5e8da;
+      background: #edf3e9;
+      color: #496c54;
+      border: 1px solid #d8e5d7;
       font-weight: 700;
     }
 
     .followup-button:hover {
-      background: #e3f0e7;
+      background: #e1ecd9;
     }
 
     .edit-button {
-      background: #edf6ef;
-      color: #476b56;
+      background: #eaf0e8;
+      color: #3c6049;
       font-weight: 700;
     }
 
@@ -654,10 +657,9 @@
 
     .backup {
       margin-top: 34px;
-      padding: 13px;
+      padding: 14px;
       box-shadow: none;
-      background: rgba(255, 253, 249, 0.52);
-      border-style: dashed;
+      background: rgba(255, 253, 249, 0.72);
     }
 
     .backup summary {
@@ -783,15 +785,19 @@
       }
 
       .detail-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
     }
 
     @media (max-width: 360px) {
       .category-grid,
       .category-buttons,
-      .detail-grid {
+      .later-times-body {
         grid-template-columns: 1fr;
+      }
+
+      .detail-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
     }
   </style>
@@ -800,7 +806,7 @@
   <main class="app">
     <header class="header">
       <h1>服薬メモ</h1>
-      <p class="lead">効果を見たい薬だけ、飲んだ時間と効き方をメモできます。</p>
+      <p class="lead">効果を確認したい薬だけ記録できます。</p>
       <p class="note">※このアプリは記録用です。服薬内容の変更は主治医・薬剤師に相談してください。</p>
     </header>
 
@@ -826,7 +832,7 @@
           </div>
 
           <div class="field">
-            <label for="medicineMemoInput">薬名メモ・量など任意</label>
+            <label for="medicineMemoInput">薬名・量などの記入（任意）</label>
             <input type="text" id="medicineMemoInput" placeholder="例：夜の薬、不安時の薬、量など">
           </div>
 
@@ -868,7 +874,6 @@
           <div class="field">
             <label for="symptomInput">その他の体の症状・メモ</label>
             <div class="symptom-chip-area" aria-label="よくある症状">
-              <p class="chip-title">よくある症状</p>
               <div class="symptom-chips" id="symptomChips"></div>
             </div>
             <textarea id="symptomInput" placeholder="例：眠気、頭が重い、ぼーっとする、不安が少し下がった、眠れた など"></textarea>
@@ -915,6 +920,7 @@
       ["不安が下がった", "落ち着かない"],
       ["だるい", "頭が重い", "吐き気", "動悸", "口が渇く", "ふらつき", "強いふらつき"]
     ];
+    const APP_OPEN_DATE = todayString();
 
     const openFormButton = document.getElementById("openFormButton");
     const formPanel = document.getElementById("formPanel");
@@ -1128,7 +1134,7 @@
     function resetForm() {
       editingId.value = "";
       formTitle.textContent = "服薬を記録する";
-      dateInput.value = todayString();
+      dateInput.value = APP_OPEN_DATE;
       categoryInput.value = "";
       medicineMemoInput.value = "";
       takenTimeInput.value = "";
@@ -1207,19 +1213,20 @@
 
     function renderRecordCard(record) {
       const memoHtml = record.medicineMemo.trim()
-        ? `<p class="medicine-memo">薬名メモ：${escapeHtml(record.medicineMemo.trim())}</p>`
+        ? `<p class="medicine-memo">薬名・量など：${escapeHtml(record.medicineMemo.trim())}</p>`
         : "";
       const symptomHtml = record.symptom.trim()
         ? `<div class="symptom-box"><span class="symptom-label">メモ</span>${escapeHtml(record.symptom.trim())}</div>`
         : "";
-      let followupButton = "";
+      const followupButtons = [];
       if (!hasTime(record.workedTime)) {
-        followupButton = `<button class="followup-button" type="button" data-action="mark-worked" data-id="${escapeHtml(record.id)}">今効いてきた</button>`;
-      } else if (!hasTime(record.woreOffTime)) {
-        followupButton = `<button class="followup-button" type="button" data-action="mark-wore-off" data-id="${escapeHtml(record.id)}">今切れてきた</button>`;
+        followupButtons.push(`<button class="followup-button" type="button" data-action="mark-worked" data-id="${escapeHtml(record.id)}">効いてきた</button>`);
       }
-      const followupHtml = followupButton
-        ? `<div class="followup-actions">${followupButton}</div>`
+      if (!hasTime(record.woreOffTime)) {
+        followupButtons.push(`<button class="followup-button" type="button" data-action="mark-wore-off" data-id="${escapeHtml(record.id)}">切れてきた</button>`);
+      }
+      const followupHtml = followupButtons.length
+        ? `<div class="followup-actions">${followupButtons.join("")}</div>`
         : "";
 
       return `
