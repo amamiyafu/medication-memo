@@ -1,4 +1,4 @@
-const CACHE_NAME = "medication-memo-cache-v2";
+const CACHE_NAME = "medication-memo-cache-v3";
 const APP_SHELL = [
   "./index.html",
   "./manifest.json",
@@ -8,7 +8,9 @@ const APP_SHELL = [
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(APP_SHELL);
+      return cache.addAll(
+        APP_SHELL.map((url) => new Request(url, { cache: "reload" }))
+      );
     })
   );
   self.skipWaiting();
@@ -32,17 +34,33 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const responseCopy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put("./index.html", responseCopy);
+          });
+          return response;
+        })
+        .catch(() => caches.match("./index.html"))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse;
       }
 
-      return fetch(event.request).catch(() => {
-        if (event.request.mode === "navigate") {
-          return caches.match("./index.html");
-        }
-        return undefined;
+      return fetch(event.request).then((response) => {
+        const responseCopy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseCopy);
+        });
+        return response;
       });
     })
   );
