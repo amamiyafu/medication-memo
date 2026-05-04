@@ -510,23 +510,30 @@
       margin-bottom: 18px;
     }
 
-    .date-heading {
-      margin: 8px 2px 0;
-      color: var(--muted);
-      font-size: 1rem;
-      font-weight: 700;
-    }
 
     .record-card {
       padding: 17px;
     }
 
     .record-top {
+      margin-bottom: 12px;
+    }
+
+    .record-title-row {
       display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: flex-start;
-      margin-bottom: 10px;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .date-text {
+      margin: 0;
+      color: var(--text);
+      font-size: 1.08rem;
+      font-weight: 800;
+      line-height: 1.35;
+      letter-spacing: 0;
     }
 
     .category-name {
@@ -547,10 +554,16 @@
       box-shadow: 0 3px 10px rgba(143, 191, 165, 0.12);
     }
 
-    .date-text {
-      margin: 3px 0 0;
-      color: var(--muted);
-      font-size: 0.96rem;
+    .category-name::before {
+      content: "";
+      display: inline-block;
+      width: 9px;
+      height: 16px;
+      margin-right: 7px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #f4d9d6 0 50%, #8fbfa5 50% 100%);
+      box-shadow: 0 1px 3px rgba(122, 86, 61, 0.12);
+      flex: 0 0 auto;
     }
 
     .medicine-memo {
@@ -774,10 +787,6 @@
     }
 
     @media (max-width: 480px) {
-      .record-top {
-        display: block;
-      }
-
       .form-actions button,
       .card-actions button,
       .followup-actions button {
@@ -1232,9 +1241,9 @@
       return `
         <article class="record-card card">
           <div class="record-top">
-            <div>
-              <h3 class="category-name">${escapeHtml(record.category)}</h3>
+            <div class="record-title-row">
               <p class="date-text">${escapeHtml(formatDate(record.date))}</p>
+              <h3 class="category-name" aria-label="薬の種類">${escapeHtml(record.category)}</h3>
             </div>
           </div>
           ${memoHtml}
@@ -1276,23 +1285,7 @@
         return;
       }
 
-      const groups = pastList.reduce((result, record) => {
-        if (!result[record.date]) {
-          result[record.date] = [];
-        }
-        result[record.date].push(record);
-        return result;
-      }, {});
-
-      pastRecords.innerHTML = Object.keys(groups)
-        .sort((a, b) => b.localeCompare(a))
-        .map((date) => `
-          <div class="date-group">
-            <h3 class="date-heading">${escapeHtml(formatDate(date))}</h3>
-            ${groups[date].map(renderRecordCard).join("")}
-          </div>
-        `)
-        .join("");
+      pastRecords.innerHTML = `<div class="record-list">${pastList.map(renderRecordCard).join("")}</div>`;
     }
 
     function handleSubmit(event) {
