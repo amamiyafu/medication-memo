@@ -749,7 +749,7 @@
     }
 
     .backup {
-      margin-top: 34px;
+      margin: 0 0 20px;
       padding: 14px;
       box-shadow: none;
       background: rgba(255, 253, 249, 0.72);
@@ -766,6 +766,13 @@
       display: grid;
       gap: 10px;
       margin-top: 12px;
+    }
+
+    .backup-description {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
     }
 
     .backup-actions {
@@ -944,21 +951,15 @@
             <div class="later-times-body">
               <div class="field">
                 <label for="workedTimeInput">効いてきた時間</label>
-                <div class="time-row">
-                  <div class="input-wrap">
-                    <input class="time-input" type="time" id="workedTimeInput">
-                  </div>
-                  <button class="quick-button" type="button" data-now-target="workedTimeInput">効いてきた</button>
+                <div class="input-wrap">
+                  <input class="time-input" type="time" id="workedTimeInput">
                 </div>
               </div>
 
               <div class="field">
                 <label for="woreOffTimeInput">効果が切れてきた時間</label>
-                <div class="time-row">
-                  <div class="input-wrap">
-                    <input class="time-input" type="time" id="woreOffTimeInput">
-                  </div>
-                  <button class="quick-button" type="button" data-now-target="woreOffTimeInput">切れてきた</button>
+                <div class="input-wrap">
+                  <input class="time-input" type="time" id="woreOffTimeInput">
                 </div>
               </div>
 
@@ -978,6 +979,19 @@
       </form>
     </section>
 
+    <details class="backup">
+      <summary>バックアップ・復元</summary>
+      <div class="backup-body">
+        <p class="backup-description">大切な記録がなくならないように、定期的なバックアップをお願いします。</p>
+        <div class="backup-actions">
+          <button class="small-button" id="exportButton" type="button">JSONを書き出す</button>
+          <label class="sr-only" for="importInput">JSONファイルを選択</label>
+          <input class="file-input" id="importInput" type="file" accept="application/json,.json">
+        </div>
+        <p class="backup-message" id="backupMessage"></p>
+      </div>
+    </details>
+
     <section class="records-section" aria-labelledby="todayTitle">
       <h2 class="section-title" id="todayTitle">今日の記録</h2>
       <div class="record-list" id="todayRecords"></div>
@@ -992,17 +1006,7 @@
       <div id="pastRecords"></div>
     </section>
 
-    <details class="backup">
-      <summary>バックアップ・復元</summary>
-      <div class="backup-body">
-        <div class="backup-actions">
-          <button class="small-button" id="exportButton" type="button">JSONを書き出す</button>
-          <label class="sr-only" for="importInput">JSONファイルを選択</label>
-          <input class="file-input" id="importInput" type="file" accept="application/json,.json">
-        </div>
-        <p class="backup-message" id="backupMessage"></p>
-      </div>
-    </details>
+
   </main>
 
   <script>
@@ -1582,25 +1586,16 @@
       renderRecords();
     });
 
-    document.addEventListener("click", (event) => {
-      const nowButton = event.target.closest("button[data-now-target]");
-      if (!nowButton) {
-        return;
-      }
-      const target = document.getElementById(nowButton.dataset.nowTarget);
-      if (target) {
-        target.value = currentTimeString();
-      }
-    });
-
-    function fillTakenTimeIfEmpty() {
-      if (!takenTimeInput.value) {
-        takenTimeInput.value = currentTimeString();
+    function fillTimeIfEmpty(input) {
+      if (!input.value) {
+        input.value = currentTimeString();
       }
     }
 
-    takenTimeInput.addEventListener("focus", fillTakenTimeIfEmpty);
-    takenTimeInput.addEventListener("click", fillTakenTimeIfEmpty);
+    [takenTimeInput, workedTimeInput, woreOffTimeInput].forEach((input) => {
+      input.addEventListener("focus", () => fillTimeIfEmpty(input));
+      input.addEventListener("click", () => fillTimeIfEmpty(input));
+    });
 
     openFormButton.addEventListener("click", () => openForm("new"));
     cancelButton.addEventListener("click", closeForm);
