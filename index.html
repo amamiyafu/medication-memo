@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -732,6 +732,14 @@
       padding: 0 12px 12px;
     }
 
+    .record-symptom-description {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
     .edit-button {
       background: #eaf0e8;
       color: #3c6049;
@@ -1350,6 +1358,7 @@
         <details class="record-symptom-details">
           <summary>服用後の症状を選ぶ</summary>
           <div class="symptom-chip-area record-symptom-area" aria-label="服用後の症状">
+            <p class="record-symptom-description">ボタンを押すと自動的にメモへ追加されます</p>
             <div class="symptom-chips">${renderRecordSymptomChips(record.id)}</div>
           </div>
         </details>
