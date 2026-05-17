@@ -688,26 +688,31 @@
       gap: 8px;
     }
 
-    .followup-actions {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-      margin: 0 0 12px;
+    .record-time-button {
+      width: 100%;
+      min-height: 34px;
+      padding: 5px 7px;
+      border-radius: 10px;
+      background: rgba(233, 242, 235, 0.9);
+      color: #355640;
+      font-size: 0.94rem;
+      font-weight: 800;
+      text-align: left;
     }
 
-    .followup-actions .followup-button:only-child {
-      grid-column: 1 / -1;
+    .record-time-button:hover {
+      background: #dde9df;
     }
 
-    .followup-button {
-      background: #edf3e9;
-      color: #496c54;
-      border: 1px solid #d8e5d7;
-      font-weight: 700;
-    }
-
-    .followup-button:hover {
-      background: #e1ecd9;
+    .record-time-picker {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      min-height: 1px;
+      padding: 0;
+      border: 0;
+      opacity: 0;
+      pointer-events: none;
     }
 
     .record-symptom-details {
@@ -884,8 +889,7 @@
 
     @media (max-width: 480px) {
       .form-actions button,
-      .card-actions button,
-      .followup-actions button {
+      .card-actions button {
         flex: 1 1 120px;
       }
 
@@ -1345,16 +1349,12 @@
       const symptomHtml = record.symptom.trim()
         ? `<div class="symptom-box"><span class="symptom-label">メモ</span>${escapeHtml(record.symptom.trim())}</div>`
         : "";
-      const followupButtons = [];
-      if (!hasTime(record.workedTime)) {
-        followupButtons.push(`<button class="followup-button" type="button" data-action="mark-worked" data-id="${escapeHtml(record.id)}">効いてきた</button>`);
-      }
-      if (!hasTime(record.woreOffTime)) {
-        followupButtons.push(`<button class="followup-button" type="button" data-action="mark-wore-off" data-id="${escapeHtml(record.id)}">切れてきた</button>`);
-      }
-      const followupHtml = followupButtons.length
-        ? `<div class="followup-actions">${followupButtons.join("")}</div>`
-        : "";
+      const workedValueHtml = hasTime(record.workedTime)
+        ? `<span class="detail-value">${escapeHtml(displayTime(record.workedTime))}</span>`
+        : `<button class="detail-value record-time-button" type="button" data-action="open-time-picker" data-id="${escapeHtml(record.id)}" data-field="workedTime" data-input-id="worked-time-${escapeHtml(record.id)}">記録する</button><input class="record-time-picker" id="worked-time-${escapeHtml(record.id)}" type="time" data-record-time-input="true" data-id="${escapeHtml(record.id)}" data-field="workedTime" aria-label="効いてきた時間">`;
+      const woreOffValueHtml = hasTime(record.woreOffTime)
+        ? `<span class="detail-value">${escapeHtml(displayTime(record.woreOffTime))}</span>`
+        : `<button class="detail-value record-time-button" type="button" data-action="open-time-picker" data-id="${escapeHtml(record.id)}" data-field="woreOffTime" data-input-id="wore-off-time-${escapeHtml(record.id)}">記録する</button><input class="record-time-picker" id="wore-off-time-${escapeHtml(record.id)}" type="time" data-record-time-input="true" data-id="${escapeHtml(record.id)}" data-field="woreOffTime" aria-label="効果が切れてきた時間">`;
       const recordSymptomHtml = `
         <details class="record-symptom-details">
           <summary>服用後の症状を選ぶ</summary>
@@ -1381,14 +1381,13 @@
             </div>
             <div class="detail">
               <span class="detail-label">効いてきた</span>
-              <span class="detail-value">${escapeHtml(displayTime(record.workedTime))}</span>
+              ${workedValueHtml}
             </div>
             <div class="detail">
               <span class="detail-label">切れてきた</span>
-              <span class="detail-value">${escapeHtml(displayTime(record.woreOffTime))}</span>
+              ${woreOffValueHtml}
             </div>
           </div>
-          ${followupHtml}
           ${recordSymptomHtml}
           ${symptomHtml}
           <div class="card-actions">
@@ -1462,6 +1461,30 @@
       closeForm();
     }
 
+    function saveRecordTimeFromInput(input) {
+      const id = input.dataset.id;
+      const field = input.dataset.field;
+      const value = input.value;
+
+      if (!id || !value || !["workedTime", "woreOffTime"].includes(field)) {
+        return;
+      }
+
+      records = records.map((item) => item.id === id
+        ? { ...item, [field]: value, updatedAt: new Date().toISOString() }
+        : item
+      );
+      saveRecords();
+      renderRecords();
+    }
+
+    function handleRecordTimeChange(event) {
+      const input = event.target.closest('input[data-record-time-input="true"]');
+      if (input) {
+        saveRecordTimeFromInput(input);
+      }
+    }
+
     function handleRecordAction(event) {
       const button = event.target.closest("button[data-action]");
       if (!button) {
@@ -1480,22 +1503,22 @@
         openForm("edit", record);
       }
 
-      if (action === "mark-worked") {
-        records = records.map((item) => item.id === id
-          ? { ...item, workedTime: currentTimeString(), updatedAt: new Date().toISOString() }
-          : item
-        );
-        saveRecords();
-        renderRecords();
-      }
-
-      if (action === "mark-wore-off") {
-        records = records.map((item) => item.id === id
-          ? { ...item, woreOffTime: currentTimeString(), updatedAt: new Date().toISOString() }
-          : item
-        );
-        saveRecords();
-        renderRecords();
+      if (action === "open-time-picker") {
+        const input = document.getElementById(button.dataset.inputId);
+        if (!input) {
+          return;
+        }
+        input.value = currentTimeString();
+        input.focus();
+        if (typeof input.showPicker === "function") {
+          try {
+            input.showPicker();
+          } catch (error) {
+            input.click();
+          }
+        } else {
+          input.click();
+        }
       }
 
       if (action === "add-symptom") {
@@ -1612,6 +1635,8 @@
     recordForm.addEventListener("submit", handleSubmit);
     todayRecords.addEventListener("click", handleRecordAction);
     pastRecords.addEventListener("click", handleRecordAction);
+    todayRecords.addEventListener("change", handleRecordTimeChange);
+    pastRecords.addEventListener("change", handleRecordTimeChange);
     exportButton.addEventListener("click", exportJson);
     importInput.addEventListener("change", () => importJson(importInput.files[0]));
 
