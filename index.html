@@ -1109,6 +1109,7 @@
 
     let records = loadRecords();
     let selectedPastCategory = PAST_FILTER_ALL;
+    let pendingInlineTime = null;
 
     function todayString() {
       const now = new Date();
@@ -1511,17 +1512,39 @@
       closeForm();
     }
 
-    function saveRecordTimeValue(id, field, value) {
-      if (!id || !value || !["workedTime", "woreOffTime"].includes(field)) {
-        return;
+    function commitInlineTimeInput(input) {
+      if (!input) {
+        return false;
       }
 
-      records = records.map((item) => item.id === id
-        ? { ...item, [field]: value, updatedAt: new Date().toISOString() }
-        : item
-      );
+      const id = input.dataset.id;
+      const field = input.dataset.field;
+      const selectedTime = input.value;
+
+      if (!id || !selectedTime || !["workedTime", "woreOffTime"].includes(field)) {
+        return false;
+      }
+
+      const targetRecord = records.find((record) => record.id === id);
+      if (!targetRecord) {
+        return false;
+      }
+
+      if (targetRecord[field] === selectedTime) {
+        pendingInlineTime = null;
+        input.dataset.pickerActive = "false";
+        input.dataset.committed = "true";
+        return false;
+      }
+
+      targetRecord[field] = selectedTime;
+      targetRecord.updatedAt = new Date().toISOString();
+      pendingInlineTime = null;
+      input.dataset.pickerActive = "false";
+      input.dataset.committed = "true";
       saveRecords();
       renderRecords();
+      return true;
     }
 
     function handleRecordTimeChange(event) {
@@ -1529,7 +1552,8 @@
       if (!input || !input.value) {
         return;
       }
-      input.dataset.pendingValue = input.value;
+
+      commitInlineTimeInput(input);
     }
 
     function handleRecordTimePickerClose(event) {
@@ -1538,15 +1562,15 @@
         return;
       }
 
-      const selectedTime = input.dataset.pendingValue || "";
-      input.dataset.pickerActive = "false";
-      input.dataset.pendingValue = "";
+      window.setTimeout(() => {
+        if (!input.value || input.dataset.committed === "true") {
+          pendingInlineTime = null;
+          input.dataset.pickerActive = "false";
+          return;
+        }
 
-      if (!selectedTime) {
-        return;
-      }
-
-      saveRecordTimeValue(input.dataset.id, input.dataset.field, selectedTime);
+        commitInlineTimeInput(input);
+      }, 0);
     }
 
     function handleRecordAction(event) {
@@ -1573,8 +1597,14 @@
           return;
         }
         input.value = currentTimeString();
-        input.dataset.pendingValue = "";
+        input.dataset.committed = "false";
         input.dataset.pickerActive = "true";
+        pendingInlineTime = {
+          recordId: input.dataset.id,
+          timeField: input.dataset.field,
+          input,
+          committed: false
+        };
         input.focus();
         if (typeof input.showPicker === "function") {
           try {
