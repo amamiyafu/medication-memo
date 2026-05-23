@@ -745,18 +745,106 @@
       background: #dde9df;
     }
 
-    .record-time-picker {
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    .inline-time-modal[hidden] {
+      display: none;
+    }
+
+    .inline-time-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    .inline-time-modal-backdrop {
       position: absolute;
-      left: 0;
-      top: 0;
-      width: 1px;
-      max-width: 1px;
-      height: 1px;
-      min-height: 1px;
-      padding: 0;
-      border: 0;
-      opacity: 0;
-      pointer-events: none;
+      inset: 0;
+      background: rgba(62, 53, 43, 0.36);
+    }
+
+    .inline-time-modal-card {
+      position: relative;
+      width: min(420px, calc(100% - 32px));
+      max-width: 100%;
+      min-width: 0;
+      padding: 18px;
+      border: 1px solid rgba(237, 222, 210, 0.88);
+      border-radius: 20px;
+      background: rgba(255, 253, 249, 0.98);
+      box-shadow: 0 16px 42px rgba(82, 63, 38, 0.18);
+    }
+
+    .inline-time-modal-card h2 {
+      margin: 0 0 8px;
+      font-size: 1.2rem;
+      line-height: 1.4;
+      letter-spacing: 0;
+    }
+
+    .inline-time-modal-description {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 0.94rem;
+      line-height: 1.6;
+    }
+
+    .inline-time-select-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+      margin: 0 0 16px;
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    .inline-time-separator {
+      color: var(--muted);
+      font-size: 1.3rem;
+      font-weight: 800;
+    }
+
+    .inline-time-select-row select {
+      min-height: 56px;
+      border-radius: 16px;
+      background: #fffefa;
+      font-size: 1.08rem;
+      font-weight: 800;
+      text-align: center;
+      text-align-last: center;
+    }
+
+    .inline-time-modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      max-width: 100%;
+    }
+
+    .inline-time-save-button {
+      flex: 1 1 140px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 800;
+    }
+
+    .inline-time-save-button:hover {
+      background: var(--accent-dark);
+    }
+
+    .inline-time-cancel-button {
+      flex: 1 1 120px;
+      background: #f1e6d7;
+      color: var(--text);
+      font-weight: 700;
     }
 
     .record-symptom-details {
@@ -1072,6 +1160,23 @@
 
   </main>
 
+  <div class="inline-time-modal" id="inlineTimeModal" hidden>
+    <div class="inline-time-modal-backdrop" id="inlineTimeModalBackdrop"></div>
+    <div class="inline-time-modal-card" role="dialog" aria-modal="true" aria-labelledby="inlineTimeModalTitle">
+      <h2 id="inlineTimeModalTitle">効いてきた時間を記録</h2>
+      <p class="inline-time-modal-description">必要なら時間を調整して記録できます。</p>
+      <div class="inline-time-select-row">
+        <select id="inlineHourSelect" aria-label="時"></select>
+        <span class="inline-time-separator">:</span>
+        <select id="inlineMinuteSelect" aria-label="分"></select>
+      </div>
+      <div class="inline-time-modal-actions">
+        <button class="inline-time-save-button" type="button" id="inlineTimeSaveButton">記録する</button>
+        <button class="inline-time-cancel-button" type="button" id="inlineTimeCancelButton">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const STORAGE_KEY = "fukuyakuMemoRecords";
     const PAST_FILTER_ALL = "すべて";
@@ -1106,10 +1211,17 @@
     const exportButton = document.getElementById("exportButton");
     const importInput = document.getElementById("importInput");
     const backupMessage = document.getElementById("backupMessage");
+    const inlineTimeModal = document.getElementById("inlineTimeModal");
+    const inlineTimeModalBackdrop = document.getElementById("inlineTimeModalBackdrop");
+    const inlineTimeModalTitle = document.getElementById("inlineTimeModalTitle");
+    const inlineHourSelect = document.getElementById("inlineHourSelect");
+    const inlineMinuteSelect = document.getElementById("inlineMinuteSelect");
+    const inlineTimeSaveButton = document.getElementById("inlineTimeSaveButton");
+    const inlineTimeCancelButton = document.getElementById("inlineTimeCancelButton");
 
     let records = loadRecords();
     let selectedPastCategory = PAST_FILTER_ALL;
-    let pendingInlineTime = null;
+    let inlineTimeModalState = null;
 
     function todayString() {
       const now = new Date();
@@ -1402,10 +1514,10 @@
         : "";
       const workedValueHtml = hasTime(record.workedTime)
         ? `<span class="detail-value">${escapeHtml(displayTime(record.workedTime))}</span>`
-        : `<button class="detail-value record-time-button" type="button" data-action="open-time-picker" data-id="${escapeHtml(record.id)}" data-field="workedTime" data-input-id="worked-time-${escapeHtml(record.id)}">記録する</button><input class="record-time-picker" id="worked-time-${escapeHtml(record.id)}" type="time" data-record-time-input="true" data-id="${escapeHtml(record.id)}" data-field="workedTime" aria-label="効いてきた時間">`;
+        : `<button class="detail-value record-time-button" type="button" data-action="open-inline-time-modal" data-id="${escapeHtml(record.id)}" data-field="workedTime">記録する</button>`;
       const woreOffValueHtml = hasTime(record.woreOffTime)
         ? `<span class="detail-value">${escapeHtml(displayTime(record.woreOffTime))}</span>`
-        : `<button class="detail-value record-time-button" type="button" data-action="open-time-picker" data-id="${escapeHtml(record.id)}" data-field="woreOffTime" data-input-id="wore-off-time-${escapeHtml(record.id)}">記録する</button><input class="record-time-picker" id="wore-off-time-${escapeHtml(record.id)}" type="time" data-record-time-input="true" data-id="${escapeHtml(record.id)}" data-field="woreOffTime" aria-label="効果が切れてきた時間">`;
+        : `<button class="detail-value record-time-button" type="button" data-action="open-inline-time-modal" data-id="${escapeHtml(record.id)}" data-field="woreOffTime">記録する</button>`;
       const recordSymptomHtml = `
         <details class="record-symptom-details">
           <summary>服用後の症状を選ぶ</summary>
@@ -1512,65 +1624,64 @@
       closeForm();
     }
 
-    function commitInlineTimeInput(input) {
-      if (!input) {
-        return false;
+    function renderInlineTimeOptions() {
+      inlineHourSelect.innerHTML = Array.from({ length: 24 }, (_, hour) => {
+        const value = String(hour).padStart(2, "0");
+        return `<option value="${value}">${value}</option>`;
+      }).join("");
+
+      inlineMinuteSelect.innerHTML = Array.from({ length: 60 }, (_, minute) => {
+        const value = String(minute).padStart(2, "0");
+        return `<option value="${value}">${value}</option>`;
+      }).join("");
+    }
+
+    function openInlineTimeModal(recordId, timeField) {
+      if (!recordId || !["workedTime", "woreOffTime"].includes(timeField)) {
+        return;
       }
 
-      const id = input.dataset.id;
-      const field = input.dataset.field;
-      const selectedTime = input.value;
+      const [hour, minute] = currentTimeString().split(":");
+      inlineTimeModalState = { recordId, timeField };
+      inlineTimeModalTitle.textContent = timeField === "workedTime"
+        ? "効いてきた時間を記録"
+        : "切れてきた時間を記録";
+      inlineHourSelect.value = hour;
+      inlineMinuteSelect.value = minute;
+      inlineTimeModal.hidden = false;
+      document.body.classList.add("modal-open");
+      window.setTimeout(() => inlineHourSelect.focus(), 0);
+    }
 
-      if (!id || !selectedTime || !["workedTime", "woreOffTime"].includes(field)) {
-        return false;
+    function closeInlineTimeModal() {
+      inlineTimeModalState = null;
+      inlineTimeModal.hidden = true;
+      document.body.classList.remove("modal-open");
+    }
+
+    function saveInlineTimeFromModal() {
+      if (!inlineTimeModalState) {
+        return;
       }
 
-      const targetRecord = records.find((record) => record.id === id);
+      const hour = inlineHourSelect.value;
+      const minute = inlineMinuteSelect.value;
+      const timeField = inlineTimeModalState.timeField;
+
+      if (!hour || !minute || !["workedTime", "woreOffTime"].includes(timeField)) {
+        return;
+      }
+
+      const targetRecord = records.find((record) => record.id === inlineTimeModalState.recordId);
       if (!targetRecord) {
-        return false;
+        return;
       }
 
-      if (targetRecord[field] === selectedTime) {
-        pendingInlineTime = null;
-        input.dataset.pickerActive = "false";
-        input.dataset.committed = "true";
-        return false;
-      }
-
-      targetRecord[field] = selectedTime;
+      targetRecord[timeField] = `${hour}:${minute}`;
       targetRecord.updatedAt = new Date().toISOString();
-      pendingInlineTime = null;
-      input.dataset.pickerActive = "false";
-      input.dataset.committed = "true";
       saveRecords();
+      closeInlineTimeModal();
       renderRecords();
-      return true;
-    }
-
-    function handleRecordTimeChange(event) {
-      const input = event.target.closest('input[data-record-time-input="true"]');
-      if (!input || !input.value) {
-        return;
-      }
-
-      commitInlineTimeInput(input);
-    }
-
-    function handleRecordTimePickerClose(event) {
-      const input = event.target.closest('input[data-record-time-input="true"]');
-      if (!input || input.dataset.pickerActive !== "true") {
-        return;
-      }
-
-      window.setTimeout(() => {
-        if (!input.value || input.dataset.committed === "true") {
-          pendingInlineTime = null;
-          input.dataset.pickerActive = "false";
-          return;
-        }
-
-        commitInlineTimeInput(input);
-      }, 0);
     }
 
     function handleRecordAction(event) {
@@ -1591,30 +1702,8 @@
         openForm("edit", record);
       }
 
-      if (action === "open-time-picker") {
-        const input = document.getElementById(button.dataset.inputId);
-        if (!input) {
-          return;
-        }
-        input.value = currentTimeString();
-        input.dataset.committed = "false";
-        input.dataset.pickerActive = "true";
-        pendingInlineTime = {
-          recordId: input.dataset.id,
-          timeField: input.dataset.field,
-          input,
-          committed: false
-        };
-        input.focus();
-        if (typeof input.showPicker === "function") {
-          try {
-            input.showPicker();
-          } catch (error) {
-            input.click();
-          }
-        } else {
-          input.click();
-        }
+      if (action === "open-inline-time-modal") {
+        openInlineTimeModal(id, button.dataset.field);
       }
 
       if (action === "add-symptom") {
@@ -1731,15 +1820,20 @@
     recordForm.addEventListener("submit", handleSubmit);
     todayRecords.addEventListener("click", handleRecordAction);
     pastRecords.addEventListener("click", handleRecordAction);
-    todayRecords.addEventListener("change", handleRecordTimeChange);
-    pastRecords.addEventListener("change", handleRecordTimeChange);
-    todayRecords.addEventListener("focusout", handleRecordTimePickerClose);
-    pastRecords.addEventListener("focusout", handleRecordTimePickerClose);
+    inlineTimeSaveButton.addEventListener("click", saveInlineTimeFromModal);
+    inlineTimeCancelButton.addEventListener("click", closeInlineTimeModal);
+    inlineTimeModalBackdrop.addEventListener("click", closeInlineTimeModal);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !inlineTimeModal.hidden) {
+        closeInlineTimeModal();
+      }
+    });
     exportButton.addEventListener("click", exportJson);
     importInput.addEventListener("change", () => importJson(importInput.files[0]));
 
     renderCategoryButtons("");
     renderPastFilterButtons();
+    renderInlineTimeOptions();
     renderSymptomChips();
     resetForm();
     renderRecords();
