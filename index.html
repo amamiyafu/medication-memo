@@ -118,7 +118,8 @@
       resize: vertical;
     }
 
-    #symptomInput {
+    #beforeMemoInput,
+    #afterMemoInput {
       margin-top: 0;
     }
 
@@ -573,6 +574,13 @@
       line-height: 1.5;
     }
 
+    .memo-blocks {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .memo-block,
     .symptom-box {
       padding: 10px 12px;
       border-radius: 14px;
@@ -952,8 +960,13 @@
           </div>
 
           <div class="field">
-            <label for="symptomInput">メモ</label>
-            <textarea id="symptomInput"></textarea>
+            <label for="beforeMemoInput">服用前の症状・メモ</label>
+            <textarea id="beforeMemoInput"></textarea>
+          </div>
+
+          <div class="symptom-chip-area" aria-label="服用前の症状">
+            <p class="form-symptom-description">ボタンを押すと自動的にメモへ追加されます</p>
+            <div class="symptom-chips" id="beforeSymptomChips"></div>
           </div>
 
           <details class="later-times" id="laterTimesDetails">
@@ -973,9 +986,14 @@
                 </div>
               </div>
 
-              <div class="symptom-chip-area" aria-label="よくある症状">
+              <div class="field">
+                <label for="afterMemoInput">服用後の症状・メモ</label>
+                <textarea id="afterMemoInput"></textarea>
+              </div>
+
+              <div class="symptom-chip-area" aria-label="服用後の症状">
                 <p class="form-symptom-description">ボタンを押すと自動的にメモへ追加されます</p>
-                <div class="symptom-chips" id="symptomChips"></div>
+                <div class="symptom-chips" id="afterSymptomChips"></div>
               </div>
             </div>
           </details>
@@ -1044,6 +1062,11 @@
       ["不安が下がった", "落ち着かない"],
       ["だるい", "頭が重い", "吐き気", "動悸", "口が渇く", "ふらつき", "強いふらつき"]
     ];
+    const BEFORE_SYMPTOM_GROUPS = [
+      ["不安", "動悸", "落ち着かない", "吐き気"],
+      ["頭が重い", "だるい", "ふらつき", "口が渇く", "眠気", "ぼーっとする"]
+    ];
+    const AFTER_SYMPTOM_GROUPS = COMMON_SYMPTOM_GROUPS;
     const APP_OPEN_DATE = todayString();
 
     const openFormButton = document.getElementById("openFormButton");
@@ -1060,8 +1083,10 @@
     const workedTimeInput = document.getElementById("workedTimeInput");
     const woreOffTimeInput = document.getElementById("woreOffTimeInput");
     const laterTimesDetails = document.getElementById("laterTimesDetails");
-    const symptomInput = document.getElementById("symptomInput");
-    const symptomChips = document.getElementById("symptomChips");
+    const beforeMemoInput = document.getElementById("beforeMemoInput");
+    const beforeSymptomChips = document.getElementById("beforeSymptomChips");
+    const afterMemoInput = document.getElementById("afterMemoInput");
+    const afterSymptomChips = document.getElementById("afterSymptomChips");
     const formMessage = document.getElementById("formMessage");
     const cancelButton = document.getElementById("cancelButton");
     const todayRecords = document.getElementById("todayRecords");
@@ -1144,7 +1169,10 @@
         typeof record.takenTime === "string" &&
         (typeof record.workedTime === "string" || record.workedTime == null) &&
         (typeof record.woreOffTime === "string" || record.woreOffTime == null) &&
-        typeof record.symptom === "string" &&
+        (typeof record.symptom === "string" || record.symptom == null) &&
+        (typeof record.memo === "string" || record.memo == null) &&
+        (typeof record.beforeMemo === "string" || record.beforeMemo == null) &&
+        (typeof record.afterMemo === "string" || record.afterMemo == null) &&
         typeof record.createdAt === "string" &&
         typeof record.updatedAt === "string";
     }
@@ -1221,12 +1249,40 @@
         ? `<p class="medicine-memo">薬名・量など：${escapeHtml(legacyMemo)}</p>`
         : "";
     }
+
+    function hasSplitMemo(record) {
+      return Boolean((record.beforeMemo || "").trim() || (record.afterMemo || "").trim());
+    }
+
+    function legacyMemoText(record) {
+      return mergeSymptomText(record.symptom || "", record.memo || "");
+    }
+
+    function renderMemoBlocks(record) {
+      const beforeMemo = (record.beforeMemo || "").trim();
+      const afterMemo = (record.afterMemo || "").trim();
+
+      if (beforeMemo || afterMemo) {
+        const beforeHtml = beforeMemo
+          ? `<div class="memo-block"><span class="symptom-label">服用前</span>${escapeHtml(beforeMemo)}</div>`
+          : "";
+        const afterHtml = afterMemo
+          ? `<div class="memo-block"><span class="symptom-label">服用後</span>${escapeHtml(afterMemo)}</div>`
+          : "";
+        return `<div class="memo-blocks">${beforeHtml}${afterHtml}</div>`;
+      }
+
+      const legacyMemo = legacyMemoText(record).trim();
+      return legacyMemo
+        ? `<div class="symptom-box"><span class="symptom-label">メモ</span>${escapeHtml(legacyMemo)}</div>`
+        : "";
+    }
     function normalizeStoredRecord(record) {
       if (!isValidRecordLike(record)) {
         return null;
       }
 
-      const migratedSymptom = mergeSymptomText(record.symptom || "", dizzinessToSymptom(record.dizziness));
+      const migratedSymptom = mergeSymptomText(legacyMemoText(record), dizzinessToSymptom(record.dizziness));
 
       return {
         id: record.id,
@@ -1239,6 +1295,9 @@
         workedTime: record.workedTime || "",
         woreOffTime: record.woreOffTime || "",
         symptom: migratedSymptom,
+        memo: record.memo || "",
+        beforeMemo: record.beforeMemo || "",
+        afterMemo: record.afterMemo || "",
         createdAt: record.createdAt,
         updatedAt: record.updatedAt
       };
@@ -1261,9 +1320,12 @@
           workedTime: typeof record.workedTime === "string" ? record.workedTime : "",
           woreOffTime: typeof record.woreOffTime === "string" ? record.woreOffTime : "",
           symptom: mergeSymptomText(
-            typeof record.symptom === "string" ? record.symptom : "",
+            mergeSymptomText(typeof record.symptom === "string" ? record.symptom : "", typeof record.memo === "string" ? record.memo : ""),
             dizzinessToSymptom(record.dizziness)
           ),
+          memo: typeof record.memo === "string" ? record.memo : "",
+          beforeMemo: typeof record.beforeMemo === "string" ? record.beforeMemo : "",
+          afterMemo: typeof record.afterMemo === "string" ? record.afterMemo : "",
           createdAt: typeof record.createdAt === "string" ? record.createdAt : new Date().toISOString(),
           updatedAt: typeof record.updatedAt === "string" ? record.updatedAt : new Date().toISOString()
         };
@@ -1293,13 +1355,18 @@
       }).join("");
     }
 
-    function renderSymptomChips() {
-      symptomChips.innerHTML = COMMON_SYMPTOM_GROUPS.map((group) => {
+    function renderSymptomChipGroups(groups) {
+      return groups.map((group) => {
         const buttons = group.map((symptom) => {
           return `<button class="symptom-chip" type="button" data-symptom="${escapeHtml(symptom)}">${escapeHtml(symptom)}</button>`;
         }).join("");
         return `<div class="symptom-chip-row symptom-buttons">${buttons}</div>`;
       }).join("");
+    }
+
+    function renderSymptomChips() {
+      beforeSymptomChips.innerHTML = renderSymptomChipGroups(BEFORE_SYMPTOM_GROUPS);
+      afterSymptomChips.innerHTML = renderSymptomChipGroups(AFTER_SYMPTOM_GROUPS);
     }
 
     function renderRecordSymptomChips(recordId) {
@@ -1311,8 +1378,8 @@
       }).join("");
     }
 
-    function addSymptomToMemo(symptom) {
-      const currentText = symptomInput.value.trim();
+    function addSymptomToMemo(input, symptom) {
+      const currentText = input.value.trim();
       const parts = currentText
         ? currentText.split("、").map((part) => part.trim()).filter(Boolean)
         : [];
@@ -1321,8 +1388,8 @@
         parts.push(symptom);
       }
 
-      symptomInput.value = parts.join("、");
-      symptomInput.focus();
+      input.value = parts.join("、");
+      input.focus();
     }
 
     function selectCategory(category) {
@@ -1342,7 +1409,8 @@
       workedTimeInput.value = "";
       woreOffTimeInput.value = "";
       laterTimesDetails.open = false;
-      symptomInput.value = "";
+      beforeMemoInput.value = "";
+      afterMemoInput.value = "";
       formMessage.textContent = "";
       renderCategoryButtons("");
     }
@@ -1360,8 +1428,9 @@
         takenTimeInput.value = record.takenTime;
         workedTimeInput.value = record.workedTime;
         woreOffTimeInput.value = record.woreOffTime;
-        laterTimesDetails.open = hasTime(record.workedTime) || hasTime(record.woreOffTime);
-        symptomInput.value = record.symptom;
+        laterTimesDetails.open = hasTime(record.workedTime) || hasTime(record.woreOffTime) || Boolean((record.afterMemo || "").trim());
+        beforeMemoInput.value = record.beforeMemo || legacyMemoText(record);
+        afterMemoInput.value = record.afterMemo || "";
         formMessage.textContent = "";
         renderCategoryButtons(record.category);
       } else {
@@ -1415,9 +1484,7 @@
 
     function renderRecordCard(record) {
       const memoHtml = renderMedicineInfo(record);
-      const symptomHtml = record.symptom.trim()
-        ? `<div class="symptom-box"><span class="symptom-label">メモ</span>${escapeHtml(record.symptom.trim())}</div>`
-        : "";
+      const symptomHtml = renderMemoBlocks(record);
       const workedValueHtml = hasTime(record.workedTime)
         ? `<span class="detail-value">${escapeHtml(displayTime(record.workedTime))}</span>`
         : `<button class="detail-value record-time-button" type="button" data-action="open-inline-time-modal" data-id="${escapeHtml(record.id)}" data-field="workedTime">記録する</button>`;
@@ -1516,7 +1583,10 @@
         takenTime: takenTimeInput.value,
         workedTime: workedTimeInput.value,
         woreOffTime: woreOffTimeInput.value,
-        symptom: symptomInput.value.trim(),
+        symptom: existingRecord && !hasSplitMemo(existingRecord) ? beforeMemoInput.value.trim() : (existingRecord ? existingRecord.symptom || "" : ""),
+        memo: existingRecord ? existingRecord.memo || "" : "",
+        beforeMemo: beforeMemoInput.value.trim(),
+        afterMemo: afterMemoInput.value.trim(),
         createdAt: existingRecord ? existingRecord.createdAt : now,
         updatedAt: now
       };
@@ -1618,7 +1688,12 @@
         const symptom = button.dataset.symptom || "";
         openRecordSymptomDetails.add(id);
         records = records.map((item) => item.id === id
-          ? { ...item, symptom: mergeSymptomText(item.symptom || "", symptom), updatedAt: new Date().toISOString() }
+          ? {
+              ...item,
+              beforeMemo: hasSplitMemo(item) ? item.beforeMemo || "" : legacyMemoText(item),
+              afterMemo: mergeSymptomText(item.afterMemo || "", symptom),
+              updatedAt: new Date().toISOString()
+            }
           : item
         );
         saveRecords();
@@ -1714,10 +1789,17 @@
       }
     });
 
-    symptomChips.addEventListener("click", (event) => {
+    beforeSymptomChips.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-symptom]");
       if (button) {
-        addSymptomToMemo(button.dataset.symptom);
+        addSymptomToMemo(beforeMemoInput, button.dataset.symptom);
+      }
+    });
+
+    afterSymptomChips.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-symptom]");
+      if (button) {
+        addSymptomToMemo(afterMemoInput, button.dataset.symptom);
       }
     });
 
