@@ -1489,7 +1489,7 @@
         <details class="record-symptom-details" data-record-id="${escapeHtml(record.id)}" ${openRecordSymptomDetails.has(record.id) ? "open" : ""}>
           <summary>服用後の症状を追加</summary>
           <div class="symptom-chip-area record-symptom-area" aria-label="服用後の症状">
-            <p class="record-symptom-description">ボタンを押すと自動的に服用後メモへ追加されます</p>
+            <p class="record-symptom-description">ボタンを押すと自動的に服用後メモへ追加されます。<br>当てはまるボタンがない場合は、編集からメモに記入できます。</p>
             <div class="symptom-chips">${renderRecordSymptomChips(record.id)}</div>
           </div>
         </details>
