@@ -1052,6 +1052,7 @@
     const STORAGE_KEY = "fukuyakuMemoRecords";
     const PAST_FILTER_ALL = "すべて";
     const CATEGORIES = ["抗不安薬", "睡眠薬", "抗うつ薬", "抗精神病薬", "気分安定薬", "頓服", "その他"];
+    const INPUT_CATEGORIES = ["抗不安薬", "抗うつ薬", "抗精神病薬", "気分安定薬", "頓服", "その他"];
     const COMMON_SYMPTOM_GROUPS = [
       ["眠気", "ぼーっとする", "眠れた", "中途覚醒あり"],
       ["不安が下がった", "落ち着かない"],
@@ -1152,11 +1153,24 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
     }
 
+    function recordCategoryValue(record) {
+      if (!record) {
+        return "";
+      }
+      if (typeof record.category === "string") {
+        return record.category;
+      }
+      if (typeof record.drugType === "string") {
+        return record.drugType;
+      }
+      return "";
+    }
+
     function isValidRecordLike(record) {
       return record &&
         typeof record.id === "string" &&
         typeof record.date === "string" &&
-        CATEGORIES.includes(record.category) &&
+        CATEGORIES.includes(recordCategoryValue(record)) &&
         (typeof record.medicineMemo === "string" || record.medicineMemo == null) &&
         (typeof record.medicineName === "string" || record.medicineName == null) &&
         (typeof record.medicineAmount === "string" || record.medicineAmount == null) &&
@@ -1281,7 +1295,7 @@
       return {
         id: record.id,
         date: record.date,
-        category: record.category,
+        category: recordCategoryValue(record),
         medicineMemo: record.medicineMemo || "",
         medicineName: record.medicineName || "",
         medicineAmount: normalizeAmountValue(record.medicineAmount || ""),
@@ -1306,7 +1320,7 @@
         const normalized = {
           id: typeof record.id === "string" && record.id ? record.id : createId(),
           date: typeof record.date === "string" ? record.date : "",
-          category: typeof record.category === "string" ? record.category : "",
+          category: typeof record.category === "string" ? record.category : (typeof record.drugType === "string" ? record.drugType : ""),
           medicineMemo: typeof record.medicineMemo === "string" ? record.medicineMemo : "",
           medicineName: typeof record.medicineName === "string" ? record.medicineName : "",
           medicineAmount: normalizeAmountValue(typeof record.medicineAmount === "string" ? record.medicineAmount : ""),
@@ -1333,7 +1347,10 @@
     }
 
     function renderCategoryButtons(selectedCategory = "") {
-      categoryButtons.innerHTML = CATEGORIES.map((category) => {
+      const buttonCategories = INPUT_CATEGORIES.includes(selectedCategory) || !selectedCategory
+        ? INPUT_CATEGORIES
+        : [selectedCategory, ...INPUT_CATEGORIES];
+      categoryButtons.innerHTML = buttonCategories.map((category) => {
         const selectedClass = category === selectedCategory ? " selected" : "";
         const pressed = category === selectedCategory ? "true" : "false";
         return `<button class="category-button category-btn${selectedClass}" type="button" data-category="${category}" aria-pressed="${pressed}">${category}</button>`;
@@ -1341,7 +1358,7 @@
     }
 
     function renderPastFilterButtons() {
-      const filterOptions = [PAST_FILTER_ALL, ...CATEGORIES];
+      const filterOptions = [PAST_FILTER_ALL, ...INPUT_CATEGORIES];
       pastFilterButtons.innerHTML = filterOptions.map((category) => {
         const selectedClass = category === selectedPastCategory ? " selected" : "";
         const pressed = category === selectedPastCategory ? "true" : "false";
