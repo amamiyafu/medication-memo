@@ -1019,6 +1019,10 @@
 
     <section class="records-section" aria-labelledby="recordsTitle">
       <h2 class="section-title" id="recordsTitle">記録</h2>
+      <div class="past-filter-area" aria-label="記録を飲み方で絞り込む">
+        <p class="past-filter-label">飲み方で見る</p>
+        <div class="past-filter-buttons" id="doseFilterButtons"></div>
+      </div>
       <div class="past-filter-area" aria-label="記録を薬の種類で絞り込む">
         <p class="past-filter-label">薬の種類で見る</p>
         <div class="past-filter-buttons" id="pastFilterButtons"></div>
@@ -1049,6 +1053,7 @@
   <script>
     const STORAGE_KEY = "fukuyakuMemoRecords";
     const PAST_FILTER_ALL = "すべて";
+    const DOSE_FILTER_ALL = "all";
     const CATEGORIES = ["抗不安薬", "睡眠薬", "抗うつ薬", "抗精神病薬", "気分安定薬", "頓服", "その他"];
     const INPUT_CATEGORIES = ["抗不安薬", "抗うつ薬", "抗精神病薬", "気分安定薬", "その他"];
     const DOSE_TYPES = [
@@ -1091,6 +1096,7 @@
     const formMessage = document.getElementById("formMessage");
     const cancelButton = document.getElementById("cancelButton");
     const recordsList = document.getElementById("recordsList");
+    const doseFilterButtons = document.getElementById("doseFilterButtons");
     const pastFilterButtons = document.getElementById("pastFilterButtons");
     const exportButton = document.getElementById("exportButton");
     const importInput = document.getElementById("importInput");
@@ -1104,6 +1110,7 @@
     const inlineTimeCancelButton = document.getElementById("inlineTimeCancelButton");
 
     let records = loadRecords();
+    let selectedDoseFilter = DOSE_FILTER_ALL;
     let selectedPastCategory = PAST_FILTER_ALL;
     let inlineTimeModalState = null;
     let openRecordSymptomDetails = new Set();
@@ -1410,6 +1417,19 @@
       }
     }
 
+    function renderDoseFilterButtons() {
+      const filterOptions = [
+        { value: DOSE_FILTER_ALL, label: "すべて" },
+        { value: "regular", label: "通常薬" },
+        { value: "asNeeded", label: "頓服" }
+      ];
+      doseFilterButtons.innerHTML = filterOptions.map((option) => {
+        const selectedClass = option.value === selectedDoseFilter ? " selected" : "";
+        const pressed = option.value === selectedDoseFilter ? "true" : "false";
+        return `<button class="past-filter-button${selectedClass}" type="button" data-dose-filter="${option.value}" aria-pressed="${pressed}">${option.label}</button>`;
+      }).join("");
+    }
+
     function renderPastFilterButtons() {
       const filterOptions = [PAST_FILTER_ALL, ...INPUT_CATEGORIES];
       pastFilterButtons.innerHTML = filterOptions.map((category) => {
@@ -1623,10 +1643,13 @@
     }
     function renderRecords() {
       const sortedList = sortedRecords(records);
-      const filteredList = selectedPastCategory === PAST_FILTER_ALL
-        ? sortedList
-        : sortedList.filter((record) => record.category === selectedPastCategory);
+      const filteredList = sortedList.filter((record) => {
+        const matchesDose = selectedDoseFilter === DOSE_FILTER_ALL || effectiveDoseType(record) === selectedDoseFilter;
+        const matchesCategory = selectedPastCategory === PAST_FILTER_ALL || record.category === selectedPastCategory;
+        return matchesDose && matchesCategory;
+      });
 
+      renderDoseFilterButtons();
       renderPastFilterButtons();
 
       if (!sortedList.length) {
@@ -1635,7 +1658,7 @@
       }
 
       if (!filteredList.length) {
-        recordsList.innerHTML = `<p class="empty">この薬の種類の記録はまだありません。</p>`;
+        recordsList.innerHTML = `<p class="empty">該当する記録はまだありません。</p>`;
         return;
       }
 
@@ -1896,6 +1919,15 @@
       }
     });
 
+    doseFilterButtons.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-dose-filter]");
+      if (!button) {
+        return;
+      }
+      selectedDoseFilter = button.dataset.doseFilter;
+      renderRecords();
+    });
+
     pastFilterButtons.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-past-category]");
       if (!button) {
@@ -1933,6 +1965,7 @@
 
     renderDoseTypeButtons("regular");
     renderCategoryButtons("");
+    renderDoseFilterButtons();
     renderPastFilterButtons();
     renderInlineTimeOptions();
     renderSymptomChips();
