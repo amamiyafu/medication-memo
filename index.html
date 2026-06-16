@@ -653,6 +653,45 @@
       box-shadow: inset 0 0 0 1px rgba(143, 191, 165, 0.25);
     }
 
+    .month-switcher {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    .month-button {
+      min-width: 44px;
+      min-height: 40px;
+      padding: 8px 12px;
+      border: 1px solid #ead9ca;
+      border-radius: 14px;
+      background: rgba(255, 253, 249, 0.96);
+      color: var(--text);
+      font-weight: 800;
+    }
+
+    .month-label {
+      margin: 0;
+      color: var(--text);
+      font-size: 1.08rem;
+      font-weight: 800;
+      line-height: 1.4;
+      text-align: center;
+      min-width: 0;
+    }
+
+    .month-summary {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 700;
+      line-height: 1.6;
+    }
+
     .backup-card {
       display: grid;
       gap: 10px;
@@ -1019,6 +1058,15 @@
 
     <section class="records-section" aria-labelledby="recordsTitle">
       <h2 class="section-title" id="recordsTitle">記録</h2>
+      <div class="past-filter-area month-filter-area" aria-label="表示する月を切り替える">
+        <p class="past-filter-label">表示する月</p>
+        <div class="month-switcher">
+          <button class="month-button" id="prevMonthButton" type="button" aria-label="前の月へ">＜</button>
+          <p class="month-label" id="monthLabel"></p>
+          <button class="month-button" id="nextMonthButton" type="button" aria-label="次の月へ">＞</button>
+        </div>
+        <p class="month-summary" id="monthSummary"></p>
+      </div>
       <div class="past-filter-area" aria-label="記録を飲み方で絞り込む">
         <p class="past-filter-label">飲み方で見る</p>
         <div class="past-filter-buttons" id="doseFilterButtons"></div>
@@ -1096,6 +1144,10 @@
     const formMessage = document.getElementById("formMessage");
     const cancelButton = document.getElementById("cancelButton");
     const recordsList = document.getElementById("recordsList");
+    const prevMonthButton = document.getElementById("prevMonthButton");
+    const nextMonthButton = document.getElementById("nextMonthButton");
+    const monthLabel = document.getElementById("monthLabel");
+    const monthSummary = document.getElementById("monthSummary");
     const doseFilterButtons = document.getElementById("doseFilterButtons");
     const pastFilterButtons = document.getElementById("pastFilterButtons");
     const exportButton = document.getElementById("exportButton");
@@ -1110,6 +1162,8 @@
     const inlineTimeCancelButton = document.getElementById("inlineTimeCancelButton");
 
     let records = loadRecords();
+    let selectedYear = Number(APP_OPEN_DATE.slice(0, 4));
+    let selectedMonth = Number(APP_OPEN_DATE.slice(5, 7));
     let selectedDoseFilter = DOSE_FILTER_ALL;
     let selectedPastCategory = PAST_FILTER_ALL;
     let inlineTimeModalState = null;
@@ -1128,6 +1182,63 @@
       const hours = String(now.getHours()).padStart(2, "0");
       const minutes = String(now.getMinutes()).padStart(2, "0");
       return `${hours}:${minutes}`;
+    }
+
+    function monthKey(year, month) {
+      return `${year}-${String(month).padStart(2, "0")}`;
+    }
+
+    function selectedMonthKey() {
+      return monthKey(selectedYear, selectedMonth);
+    }
+
+    function recordMonthKey(record) {
+      const value = record && typeof record.date === "string" ? record.date.trim() : "";
+      if (!value) {
+        return "";
+      }
+
+      let match = value.match(/^(\d{4})-(\d{1,2})-/);
+      if (!match) {
+        match = value.match(/^(\d{4})\/(\d{1,2})\//);
+      }
+      if (!match) {
+        match = value.match(/^(\d{4})年\s*(\d{1,2})月/);
+      }
+      if (!match) {
+        return "";
+      }
+
+      const year = Number(match[1]);
+      const month = Number(match[2]);
+      if (!year || month < 1 || month > 12) {
+        return "";
+      }
+      return monthKey(year, month);
+    }
+
+    function setSelectedMonthFromDate(dateValue) {
+      const key = recordMonthKey({ date: dateValue });
+      if (!key) {
+        return;
+      }
+      const [year, month] = key.split("-").map(Number);
+      selectedYear = year;
+      selectedMonth = month;
+    }
+
+    function moveSelectedMonth(offset) {
+      const date = new Date(selectedYear, selectedMonth - 1 + offset, 1);
+      selectedYear = date.getFullYear();
+      selectedMonth = date.getMonth() + 1;
+      renderRecords();
+    }
+
+    function renderMonthInfo(monthRecords) {
+      monthLabel.textContent = `${selectedYear}年${selectedMonth}月`;
+      const regularCount = monthRecords.filter((record) => effectiveDoseType(record) === "regular").length;
+      const asNeededCount = monthRecords.filter((record) => effectiveDoseType(record) === "asNeeded").length;
+      monthSummary.innerHTML = `この月の記録：${monthRecords.length}件<br>通常薬：${regularCount}件　頓服：${asNeededCount}件`;
     }
 
     function createId() {
@@ -1643,17 +1754,19 @@
     }
     function renderRecords() {
       const sortedList = sortedRecords(records);
-      const filteredList = sortedList.filter((record) => {
+      const monthRecords = sortedList.filter((record) => recordMonthKey(record) === selectedMonthKey());
+      const filteredList = monthRecords.filter((record) => {
         const matchesDose = selectedDoseFilter === DOSE_FILTER_ALL || effectiveDoseType(record) === selectedDoseFilter;
         const matchesCategory = selectedPastCategory === PAST_FILTER_ALL || record.category === selectedPastCategory;
         return matchesDose && matchesCategory;
       });
 
+      renderMonthInfo(monthRecords);
       renderDoseFilterButtons();
       renderPastFilterButtons();
 
-      if (!sortedList.length) {
-        recordsList.innerHTML = `<p class="empty">まだ記録はありません。</p>`;
+      if (!monthRecords.length) {
+        recordsList.innerHTML = `<p class="empty">この月の記録はまだありません。</p>`;
         return;
       }
 
@@ -1704,6 +1817,7 @@
         records.push(savedRecord);
       }
 
+      setSelectedMonthFromDate(savedRecord.date);
       saveRecords();
       renderRecords();
       closeForm();
@@ -1918,6 +2032,9 @@
         addSymptomToMemo(afterMemoInput, button.dataset.symptom);
       }
     });
+
+    prevMonthButton.addEventListener("click", () => moveSelectedMonth(-1));
+    nextMonthButton.addEventListener("click", () => moveSelectedMonth(1));
 
     doseFilterButtons.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-dose-filter]");
