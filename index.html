@@ -187,21 +187,6 @@
       line-height: 1.55;
     }
 
-    .main-action {
-      width: 100%;
-      margin: 10px 0 18px;
-      min-height: 62px;
-      background: linear-gradient(135deg, var(--accent) 0%, #9ecbb3 100%);
-      color: #fff;
-      font-size: 1.16rem;
-      font-weight: 700;
-      box-shadow: var(--shadow);
-    }
-
-    .main-action:hover {
-      background: var(--accent-dark);
-    }
-
     .panel,
     .record-card {
       width: 100%;
@@ -217,10 +202,6 @@
     }
 
     .panel {
-      display: none;
-    }
-
-    .panel.open {
       display: block;
     }
 
@@ -919,8 +900,6 @@
       <p class="note">※このアプリは記録用です。服薬内容の変更は主治医・薬剤師に相談してください。</p>
     </header>
 
-    <button class="main-action" id="openFormButton" type="button">＋ 服薬を記録する</button>
-
     <section class="panel form-card" id="formPanel" aria-live="polite">
       <h2 id="formTitle">服薬を記録する</h2>
       <form id="recordForm">
@@ -1021,7 +1000,7 @@
 
           <div class="form-actions">
             <button class="save-button" type="submit">保存する</button>
-            <button class="cancel-button" id="cancelButton" type="button">キャンセル</button>
+            <button class="cancel-button" id="cancelButton" type="button">入力を消す</button>
           </div>
         </div>
       </form>
@@ -1088,7 +1067,6 @@
     const AFTER_SYMPTOM_GROUPS = COMMON_SYMPTOM_GROUPS;
     const APP_OPEN_DATE = todayString();
 
-    const openFormButton = document.getElementById("openFormButton");
     const formPanel = document.getElementById("formPanel");
     const formTitle = document.getElementById("formTitle");
     const recordForm = document.getElementById("recordForm");
@@ -1512,8 +1490,6 @@
     }
 
     function openForm(mode = "new", record = null) {
-      formPanel.classList.add("open");
-
       if (mode === "edit" && record) {
         editingId.value = record.id;
         formTitle.textContent = "記録を編集する";
@@ -1542,7 +1518,6 @@
     }
 
     function closeForm() {
-      formPanel.classList.remove("open");
       resetForm();
     }
 
@@ -1941,7 +1916,6 @@
       input.addEventListener("click", () => fillTimeIfEmpty(input));
     });
 
-    openFormButton.addEventListener("click", () => openForm("new"));
     cancelButton.addEventListener("click", closeForm);
     recordForm.addEventListener("submit", handleSubmit);
     recordsList.addEventListener("click", handleRecordAction);
