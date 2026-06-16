@@ -1055,16 +1055,16 @@
       { value: "regular", label: "通常薬" },
       { value: "asNeeded", label: "頓服" }
     ];
-    const COMMON_SYMPTOM_GROUPS = [
-      ["眠気", "ぼーっとする", "眠れた", "中途覚醒あり"],
-      ["不安が下がった", "落ち着かない"],
-      ["だるい", "頭が重い", "吐き気", "動悸", "口が渇く", "ふらつき", "強いふらつき"]
-    ];
     const BEFORE_SYMPTOM_GROUPS = [
-      ["不安", "動悸", "落ち着かない", "吐き気"],
-      ["頭が重い", "だるい", "ふらつき", "口が渇く", "眠気", "ぼーっとする"]
+      ["不安", "動悸", "落ち着かない", "そわそわ"],
+      ["吐き気", "頭が重い", "だるい", "眠気", "ぼーっとする", "気持ちに疲れた"]
     ];
-    const AFTER_SYMPTOM_GROUPS = COMMON_SYMPTOM_GROUPS;
+    const AFTER_SYMPTOM_GROUPS = [
+      ["落ち着いた", "不安が下がった", "効いた感じなし"],
+      ["眠くなった", "ぼーっとする", "だるい", "ふらつき", "強いふらつき"],
+      ["吐き気", "頭が重い", "口が渇く"]
+    ];
+    const COMMON_SYMPTOM_GROUPS = AFTER_SYMPTOM_GROUPS;
     const APP_OPEN_DATE = todayString();
 
     const formPanel = document.getElementById("formPanel");
