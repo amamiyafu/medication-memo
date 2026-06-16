@@ -293,7 +293,8 @@
     }
 
     .category-grid,
-    .category-buttons {
+    .category-buttons,
+    .dose-type-buttons {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
@@ -303,7 +304,8 @@
     }
 
     .category-button,
-    .category-btn {
+    .category-btn,
+    .dose-type-button {
       width: 100%;
       max-width: 100%;
       min-width: 0;
@@ -318,7 +320,8 @@
     }
 
     .category-button.selected,
-    .category-btn.selected {
+    .category-btn.selected,
+    .dose-type-button.selected {
       border-color: rgba(143, 191, 165, 0.95);
       background: var(--accent-soft);
       color: #355640;
@@ -482,7 +485,8 @@
       font-weight: 700;
     }
 
-    .category-name {
+    .category-name,
+    .dose-name {
       margin: 0;
       padding: 5px 10px;
       border-radius: 999px;
@@ -516,6 +520,10 @@
       width: 100%;
       max-width: 100%;
       min-width: 0;
+    }
+
+    .detail-grid.regular-detail-grid {
+      grid-template-columns: minmax(0, 1fr);
     }
 
     .detail {
@@ -809,6 +817,10 @@
       font-weight: 700;
     }
 
+    .is-hidden {
+      display: none !important;
+    }
+
     .sr-only {
       position: absolute;
       width: 1px;
@@ -888,6 +900,7 @@
     @media (max-width: 360px) {
       .category-grid,
       .category-buttons,
+      .dose-type-buttons,
       .later-times-body {
         grid-template-columns: 1fr;
       }
@@ -919,6 +932,12 @@
             <div class="input-wrap">
               <input class="date-input" type="date" id="dateInput" required>
             </div>
+          </div>
+
+          <div class="field">
+            <span class="field-title">飲み方</span>
+            <div class="dose-type-buttons" id="doseTypeButtons"></div>
+            <input type="hidden" id="doseTypeInput" value="regular">
           </div>
 
           <div class="field">
@@ -960,11 +979,11 @@
           </div>
 
           <div class="field">
-            <label for="beforeMemoInput">服用前の症状・メモ</label>
+            <label for="beforeMemoInput" id="beforeMemoLabel">服用前の症状・メモ</label>
             <textarea id="beforeMemoInput"></textarea>
           </div>
 
-          <div class="symptom-chip-area" aria-label="服用前の症状">
+          <div class="symptom-chip-area" id="beforeSymptomArea" aria-label="服用前の症状">
             <p class="form-symptom-description">ボタンを押すと自動的にメモへ追加されます</p>
             <div class="symptom-chips" id="beforeSymptomChips"></div>
           </div>
@@ -1052,7 +1071,11 @@
     const STORAGE_KEY = "fukuyakuMemoRecords";
     const PAST_FILTER_ALL = "すべて";
     const CATEGORIES = ["抗不安薬", "睡眠薬", "抗うつ薬", "抗精神病薬", "気分安定薬", "頓服", "その他"];
-    const INPUT_CATEGORIES = ["抗不安薬", "抗うつ薬", "抗精神病薬", "気分安定薬", "頓服", "その他"];
+    const INPUT_CATEGORIES = ["抗不安薬", "抗うつ薬", "抗精神病薬", "気分安定薬", "その他"];
+    const DOSE_TYPES = [
+      { value: "regular", label: "通常薬" },
+      { value: "asNeeded", label: "頓服" }
+    ];
     const COMMON_SYMPTOM_GROUPS = [
       ["眠気", "ぼーっとする", "眠れた", "中途覚醒あり"],
       ["不安が下がった", "落ち着かない"],
@@ -1071,6 +1094,8 @@
     const recordForm = document.getElementById("recordForm");
     const editingId = document.getElementById("editingId");
     const dateInput = document.getElementById("dateInput");
+    const doseTypeButtons = document.getElementById("doseTypeButtons");
+    const doseTypeInput = document.getElementById("doseTypeInput");
     const categoryButtons = document.getElementById("categoryButtons");
     const categoryInput = document.getElementById("categoryInput");
     const medicineNameInput = document.getElementById("medicineNameInput");
@@ -1080,6 +1105,8 @@
     const woreOffTimeInput = document.getElementById("woreOffTimeInput");
     const laterTimesDetails = document.getElementById("laterTimesDetails");
     const beforeMemoInput = document.getElementById("beforeMemoInput");
+    const beforeMemoLabel = document.getElementById("beforeMemoLabel");
+    const beforeSymptomArea = document.getElementById("beforeSymptomArea");
     const beforeSymptomChips = document.getElementById("beforeSymptomChips");
     const afterMemoInput = document.getElementById("afterMemoInput");
     const afterSymptomChips = document.getElementById("afterSymptomChips");
@@ -1157,13 +1184,31 @@
       if (!record) {
         return "";
       }
-      if (typeof record.category === "string") {
+      if (typeof record.category === "string" && record.category) {
         return record.category;
       }
-      if (typeof record.drugType === "string") {
+      if (typeof record.drugType === "string" && record.drugType) {
         return record.drugType;
       }
       return "";
+    }
+
+    function effectiveDoseType(record) {
+      if (record && record.doseType === "asNeeded") {
+        return "asNeeded";
+      }
+      if (record && record.doseType === "regular") {
+        return "regular";
+      }
+      return recordCategoryValue(record) === "頓服" ? "asNeeded" : "regular";
+    }
+
+    function doseTypeLabel(value) {
+      return value === "asNeeded" ? "頓服" : "通常薬";
+    }
+
+    function isAsNeededRecord(record) {
+      return effectiveDoseType(record) === "asNeeded";
     }
 
     function isValidRecordLike(record) {
@@ -1182,7 +1227,8 @@
         (typeof record.beforeMemo === "string" || record.beforeMemo == null) &&
         (typeof record.afterMemo === "string" || record.afterMemo == null) &&
         typeof record.createdAt === "string" &&
-        typeof record.updatedAt === "string";
+        typeof record.updatedAt === "string" &&
+        (typeof record.doseType === "string" || record.doseType == null);
     }
 
     function dizzinessToSymptom(value) {
@@ -1269,6 +1315,14 @@
     function renderMemoBlocks(record) {
       const beforeMemo = (record.beforeMemo || "").trim();
       const afterMemo = (record.afterMemo || "").trim();
+      const plainMemo = (record.memo || "").trim();
+
+      if (!isAsNeededRecord(record)) {
+        const regularMemo = mergeSymptomText(mergeSymptomText(plainMemo, beforeMemo), mergeSymptomText(afterMemo, legacyMemoText(record))).trim();
+        return regularMemo
+          ? `<div class="symptom-box"><span class="symptom-label">メモ</span>${escapeHtml(regularMemo)}</div>`
+          : "";
+      }
 
       if (beforeMemo || afterMemo) {
         const beforeHtml = beforeMemo
@@ -1296,6 +1350,7 @@
         id: record.id,
         date: record.date,
         category: recordCategoryValue(record),
+        doseType: effectiveDoseType(record),
         medicineMemo: record.medicineMemo || "",
         medicineName: record.medicineName || "",
         medicineAmount: normalizeAmountValue(record.medicineAmount || ""),
@@ -1320,7 +1375,8 @@
         const normalized = {
           id: typeof record.id === "string" && record.id ? record.id : createId(),
           date: typeof record.date === "string" ? record.date : "",
-          category: typeof record.category === "string" ? record.category : (typeof record.drugType === "string" ? record.drugType : ""),
+          category: typeof record.category === "string" && record.category ? record.category : (typeof record.drugType === "string" ? record.drugType : ""),
+          doseType: record && record.doseType === "asNeeded" ? "asNeeded" : (record && record.doseType === "regular" ? "regular" : (((typeof record.category === "string" && record.category ? record.category : (typeof record.drugType === "string" ? record.drugType : "")) === "頓服") ? "asNeeded" : "regular")),
           medicineMemo: typeof record.medicineMemo === "string" ? record.medicineMemo : "",
           medicineName: typeof record.medicineName === "string" ? record.medicineName : "",
           medicineAmount: normalizeAmountValue(typeof record.medicineAmount === "string" ? record.medicineAmount : ""),
@@ -1353,8 +1409,27 @@
       categoryButtons.innerHTML = buttonCategories.map((category) => {
         const selectedClass = category === selectedCategory ? " selected" : "";
         const pressed = category === selectedCategory ? "true" : "false";
-        return `<button class="category-button category-btn${selectedClass}" type="button" data-category="${category}" aria-pressed="${pressed}">${category}</button>`;
+        const label = category === "頓服" ? "頓服（旧分類）" : category;
+        return `<button class="category-button category-btn${selectedClass}" type="button" data-category="${escapeHtml(category)}" aria-pressed="${pressed}">${escapeHtml(label)}</button>`;
       }).join("");
+    }
+
+    function renderDoseTypeButtons(selectedValue = "regular") {
+      doseTypeButtons.innerHTML = DOSE_TYPES.map((doseType) => {
+        const selectedClass = doseType.value === selectedValue ? " selected" : "";
+        const pressed = doseType.value === selectedValue ? "true" : "false";
+        return `<button class="dose-type-button${selectedClass}" type="button" data-dose-type="${doseType.value}" aria-pressed="${pressed}">${doseType.label}</button>`;
+      }).join("");
+    }
+
+    function updateDoseTypeView() {
+      const isAsNeeded = doseTypeInput.value === "asNeeded";
+      beforeMemoLabel.textContent = isAsNeeded ? "服用前の症状・メモ" : "メモ";
+      beforeSymptomArea.classList.toggle("is-hidden", !isAsNeeded);
+      laterTimesDetails.classList.toggle("is-hidden", !isAsNeeded);
+      if (!isAsNeeded) {
+        laterTimesDetails.open = false;
+      }
     }
 
     function renderPastFilterButtons() {
@@ -1409,10 +1484,18 @@
       formMessage.textContent = "";
     }
 
+    function selectDoseType(value) {
+      doseTypeInput.value = value === "asNeeded" ? "asNeeded" : "regular";
+      renderDoseTypeButtons(doseTypeInput.value);
+      updateDoseTypeView();
+      formMessage.textContent = "";
+    }
+
     function resetForm() {
       editingId.value = "";
       formTitle.textContent = "服薬を記録する";
       dateInput.value = APP_OPEN_DATE;
+      doseTypeInput.value = "regular";
       categoryInput.value = "";
       medicineNameInput.value = "";
       medicineAmountInput.value = "";
@@ -1423,7 +1506,9 @@
       beforeMemoInput.value = "";
       afterMemoInput.value = "";
       formMessage.textContent = "";
+      renderDoseTypeButtons("regular");
       renderCategoryButtons("");
+      updateDoseTypeView();
     }
 
     function openForm(mode = "new", record = null) {
@@ -1433,17 +1518,21 @@
         editingId.value = record.id;
         formTitle.textContent = "記録を編集する";
         dateInput.value = record.date;
+        const formDoseType = effectiveDoseType(record);
+        doseTypeInput.value = formDoseType;
         categoryInput.value = record.category;
         medicineNameInput.value = record.medicineName || record.medicineMemo || "";
         medicineAmountInput.value = normalizeAmountValue(record.medicineAmount || "");
         takenTimeInput.value = record.takenTime;
         workedTimeInput.value = record.workedTime;
         woreOffTimeInput.value = record.woreOffTime;
-        laterTimesDetails.open = hasTime(record.workedTime) || hasTime(record.woreOffTime) || Boolean((record.afterMemo || "").trim());
-        beforeMemoInput.value = record.beforeMemo || legacyMemoText(record);
+        laterTimesDetails.open = formDoseType === "asNeeded" && (hasTime(record.workedTime) || hasTime(record.woreOffTime) || Boolean((record.afterMemo || "").trim()));
+        beforeMemoInput.value = formDoseType === "asNeeded" ? (record.beforeMemo || legacyMemoText(record)) : (record.memo || record.beforeMemo || legacyMemoText(record));
         afterMemoInput.value = record.afterMemo || "";
         formMessage.textContent = "";
+        renderDoseTypeButtons(formDoseType);
         renderCategoryButtons(record.category);
+        updateDoseTypeView();
       } else {
         resetForm();
       }
@@ -1496,13 +1585,15 @@
     function renderRecordCard(record) {
       const memoHtml = renderMedicineInfo(record);
       const symptomHtml = renderMemoBlocks(record);
+      const doseType = effectiveDoseType(record);
+      const isAsNeeded = doseType === "asNeeded";
       const workedValueHtml = hasTime(record.workedTime)
         ? `<span class="detail-value">${escapeHtml(displayTime(record.workedTime))}</span>`
         : `<button class="detail-value record-time-button" type="button" data-action="open-inline-time-modal" data-id="${escapeHtml(record.id)}" data-field="workedTime">記録する</button>`;
       const woreOffValueHtml = hasTime(record.woreOffTime)
         ? `<span class="detail-value">${escapeHtml(displayTime(record.woreOffTime))}</span>`
         : `<button class="detail-value record-time-button" type="button" data-action="open-inline-time-modal" data-id="${escapeHtml(record.id)}" data-field="woreOffTime">記録する</button>`;
-      const recordSymptomHtml = `
+      const recordSymptomHtml = isAsNeeded ? `
         <details class="record-symptom-details" data-record-id="${escapeHtml(record.id)}" ${openRecordSymptomDetails.has(record.id) ? "open" : ""}>
           <summary>服用後の症状を追加</summary>
           <div class="symptom-chip-area record-symptom-area" aria-label="服用後の症状">
@@ -1510,17 +1601,8 @@
             <div class="symptom-chips">${renderRecordSymptomChips(record.id)}</div>
           </div>
         </details>
-      `;
-
-      return `
-        <article class="record-card card">
-          <div class="record-top">
-            <div class="record-title-row">
-              <p class="date-text">${escapeHtml(formatDate(record.date))}</p>
-              <h3 class="category-name" aria-label="薬の種類">${escapeHtml(record.category)}</h3>
-            </div>
-          </div>
-          ${memoHtml}
+      ` : "";
+      const detailGridHtml = isAsNeeded ? `
           <div class="detail-grid">
             <div class="detail">
               <span class="detail-label">飲んだ</span>
@@ -1535,6 +1617,26 @@
               ${woreOffValueHtml}
             </div>
           </div>
+      ` : `
+          <div class="detail-grid regular-detail-grid">
+            <div class="detail">
+              <span class="detail-label">飲んだ</span>
+              <span class="detail-value">${escapeHtml(displayTime(record.takenTime))}</span>
+            </div>
+          </div>
+      `;
+
+      return `
+        <article class="record-card card">
+          <div class="record-top">
+            <div class="record-title-row">
+              <p class="date-text">${escapeHtml(formatDate(record.date))}</p>
+              <h3 class="dose-name" aria-label="飲み方">${escapeHtml(doseTypeLabel(doseType))}</h3>
+              <h3 class="category-name" aria-label="薬の種類">${escapeHtml(record.category)}</h3>
+            </div>
+          </div>
+          ${memoHtml}
+          ${detailGridHtml}
           ${symptomHtml}
           ${recordSymptomHtml}
           <div class="card-actions">
@@ -1544,7 +1646,6 @@
         </article>
       `;
     }
-
     function renderRecords() {
       const sortedList = sortedRecords(records);
       const filteredList = selectedPastCategory === PAST_FILTER_ALL
@@ -1577,21 +1678,24 @@
       const now = new Date().toISOString();
       const currentId = editingId.value;
       const existingRecord = records.find((record) => record.id === currentId);
+      const selectedDoseType = doseTypeInput.value === "asNeeded" ? "asNeeded" : "regular";
+      const isAsNeeded = selectedDoseType === "asNeeded";
 
       const savedRecord = {
         id: currentId || createId(),
         date: dateInput.value || todayString(),
+        doseType: selectedDoseType,
         category: categoryInput.value,
         medicineMemo: existingRecord && !hasNewMedicineInfo(existingRecord) ? medicineNameInput.value.trim() : (existingRecord ? existingRecord.medicineMemo || "" : ""),
         medicineName: medicineNameInput.value.trim(),
         medicineAmount: normalizeAmountValue(medicineAmountInput.value),
         takenTime: takenTimeInput.value,
-        workedTime: workedTimeInput.value,
-        woreOffTime: woreOffTimeInput.value,
-        symptom: existingRecord && !hasSplitMemo(existingRecord) ? beforeMemoInput.value.trim() : (existingRecord ? existingRecord.symptom || "" : ""),
-        memo: existingRecord ? existingRecord.memo || "" : "",
-        beforeMemo: beforeMemoInput.value.trim(),
-        afterMemo: afterMemoInput.value.trim(),
+        workedTime: isAsNeeded ? workedTimeInput.value : "",
+        woreOffTime: isAsNeeded ? woreOffTimeInput.value : "",
+        symptom: existingRecord && !hasSplitMemo(existingRecord) && isAsNeeded ? beforeMemoInput.value.trim() : (existingRecord ? existingRecord.symptom || "" : ""),
+        memo: isAsNeeded ? (existingRecord ? existingRecord.memo || "" : "") : beforeMemoInput.value.trim(),
+        beforeMemo: isAsNeeded ? beforeMemoInput.value.trim() : "",
+        afterMemo: isAsNeeded ? afterMemoInput.value.trim() : "",
         createdAt: existingRecord ? existingRecord.createdAt : now,
         updatedAt: now
       };
@@ -1686,7 +1790,9 @@
       }
 
       if (action === "open-inline-time-modal") {
-        openInlineTimeModal(id, button.dataset.field);
+        if (isAsNeededRecord(record)) {
+          openInlineTimeModal(id, button.dataset.field);
+        }
       }
 
       if (action === "add-symptom") {
@@ -1787,6 +1893,13 @@
       reader.readAsText(file);
     }
 
+    doseTypeButtons.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-dose-type]");
+      if (button) {
+        selectDoseType(button.dataset.doseType);
+      }
+    });
+
     categoryButtons.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-category]");
       if (button) {
@@ -1844,6 +1957,7 @@
     exportButton.addEventListener("click", exportJson);
     importInput.addEventListener("change", () => importJson(importInput.files[0]));
 
+    renderDoseTypeButtons("regular");
     renderCategoryButtons("");
     renderPastFilterButtons();
     renderInlineTimeOptions();
